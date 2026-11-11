@@ -99,6 +99,9 @@ input:focus, select:focus { border-color: var(--cyan); background: rgba(8, 3, 29
 .small { color: var(--muted); font-size: .86rem; }
 .error-message { min-height: 1.3rem; margin: .75rem 0; color: var(--yellow); }
 .ticket-instructions { margin: 1rem 0 0; text-align: center; }
+.scanner-actions { display: flex; flex-wrap: wrap; gap: .65rem; margin: 1.1rem 0; }
+.qr-reader { width: min(100%, 360px); margin: 0 auto 1rem; overflow: hidden; border: 1px solid rgba(66, 232, 255, .55); border-radius: 1rem; background: #08031d; }
+.qr-reader video { width: 100% !important; border-radius: .9rem; }
 footer { padding: 0 0 2rem; color: var(--muted); font-size: .8rem; text-align: center; }
 
 @keyframes reveal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }

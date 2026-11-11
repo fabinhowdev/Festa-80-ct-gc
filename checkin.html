@@ -11,7 +11,13 @@
     <section class="card">
       <div class="tag">Portaria</div>
       <h1>Check-in</h1>
-      <p class="sub">Digite ou use um leitor de QR Code para informar o código do ingresso.</p>
+      <p class="sub">Leia o QR Code pela câmera ou digite o código do ingresso.</p>
+
+      <div class="scanner-actions">
+        <button id="abrir-camera" class="btn" type="button">Ler QR Code pela câmera</button>
+        <button id="fechar-camera" class="btn alt hidden" type="button">Fechar câmera</button>
+      </div>
+      <div id="qr-reader" class="qr-reader hidden" aria-label="Leitor de QR Code"></div>
 
       <label for="codigo">Código do ingresso</label>
       <input id="codigo" autocomplete="off" placeholder="CT80-XXXXXXXXXX">
@@ -20,39 +26,95 @@
     </section>
   </main>
 
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="config.js"></script>
   <script>
     const apiUrl = window.FESTA_API_URL?.replace(/\/$/, "");
     const codigo = document.getElementById("codigo");
     const resultado = document.getElementById("resultado");
+    const abrirCamera = document.getElementById("abrir-camera");
+    const fecharCamera = document.getElementById("fechar-camera");
+    const leitor = document.getElementById("qr-reader");
     const segredo = window.sessionStorage.getItem("checkin-secret")
       || window.prompt("Digite a senha da portaria:");
+    let scanner;
+    let cameraAtiva = false;
+    let validando = false;
 
     if (segredo) window.sessionStorage.setItem("checkin-secret", segredo);
 
-    async function validar() {
-      const valor = codigo.value.trim().replace("FESTA80CT|", "");
+    async function validar(valorLido = codigo.value) {
+      const valor = valorLido.trim().replace("FESTA80CT|", "");
       if (!valor || !segredo || !apiUrl || apiUrl.includes("COLE_AQUI")) {
         resultado.textContent = "Informe um código e configure o endereço do Supabase.";
         return;
       }
 
-      const resposta = await fetch(`${apiUrl}/validate-ticket`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Checkin-Secret": segredo,
-        },
-        body: JSON.stringify({ codigo: valor }),
-      });
-      const dados = await resposta.json();
-      resultado.textContent = dados.mensagem || dados.error || "Não foi possível validar o ingresso.";
-      resultado.style.color = dados.liberado ? "var(--cyan)" : "var(--yellow)";
-      if (dados.liberado) codigo.value = "";
-      codigo.focus();
+      validando = true;
+      try {
+        const resposta = await fetch(apiUrl + "/validate-ticket", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Checkin-Secret": segredo,
+          },
+          body: JSON.stringify({ codigo: valor }),
+        });
+        const dados = await resposta.json();
+        resultado.textContent = dados.mensagem || dados.error || "Não foi possível validar o ingresso.";
+        resultado.style.color = dados.liberado ? "var(--cyan)" : "var(--yellow)";
+        if (dados.liberado) codigo.value = "";
+      } catch {
+        resultado.textContent = "Não foi possível validar o ingresso.";
+      } finally {
+        validando = false;
+        codigo.focus();
+      }
+    }
+
+    async function pararCamera() {
+      if (scanner && cameraAtiva) await scanner.stop();
+      cameraAtiva = false;
+      leitor.classList.add("hidden");
+      abrirCamera.classList.remove("hidden");
+      fecharCamera.classList.add("hidden");
+    }
+
+    async function iniciarCamera() {
+      if (!segredo) {
+        resultado.textContent = "Informe a senha da portaria para usar a câmera.";
+        return;
+      }
+
+      leitor.classList.remove("hidden");
+      abrirCamera.classList.add("hidden");
+      fecharCamera.classList.remove("hidden");
+      resultado.textContent = "Aponte a câmera para o QR Code.";
+
+      try {
+        scanner = new Html5Qrcode("qr-reader", {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        });
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 230, height: 230 } },
+          async (textoLido) => {
+            if (validando) return;
+            codigo.value = textoLido.replace("FESTA80CT|", "");
+            await pararCamera();
+            validar(textoLido);
+          },
+        );
+        cameraAtiva = true;
+      } catch {
+        resultado.textContent = "Não foi possível abrir a câmera. Verifique a permissão do navegador.";
+        pararCamera();
+      }
     }
 
     document.getElementById("validar").addEventListener("click", validar);
+    abrirCamera.addEventListener("click", iniciarCamera);
+    fecharCamera.addEventListener("click", pararCamera);
     codigo.addEventListener("keydown", (evento) => {
       if (evento.key === "Enter") validar();
     });

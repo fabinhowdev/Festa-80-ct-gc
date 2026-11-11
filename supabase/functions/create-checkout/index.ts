@@ -49,7 +49,10 @@ Deno.serve(async (req) => {
         order_nsu: orderNsu,
         redirect_url: `${siteUrl}/?pedido=${pedido.id}`,
         items: [{ quantity: 1, price: EVENT_PRICE_CENTS, description: EVENT_NAME }],
-        customer: { name: nome.trim(), phone_number: `+55${phoneDigits}` },
+        // O cadastro do evento já guarda o WhatsApp. Não enviamos o telefone
+        // para pré-preencher a InfinitePay, pois ela rejeita formatos que
+        // variam conforme DDD e impede a criação do checkout.
+        customer: { name: nome.trim() },
         options: {
           single_payment: true,
           payment_methods_enabled: ["pix", "credit_card"],

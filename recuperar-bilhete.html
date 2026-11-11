@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recuperar bilhete — Festa Anos 80</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="tag">Festa Anos 80</div>
+      <h1>Recuperar bilhete</h1>
+      <p class="sub">Informe os mesmos dados usados na compra.</p>
+      <label for="nome">Nome completo</label>
+      <input id="nome" autocomplete="name">
+      <label for="zap">WhatsApp</label>
+      <input id="zap" type="tel" autocomplete="tel" placeholder="(71) 99999-9999">
+      <p id="mensagem" class="small error-message"></p>
+      <button id="buscar" class="btn" type="button">Buscar meu bilhete</button>
+      <div id="bilhetes"></div>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="config.js"></script>
+  <script>
+    const api = window.FESTA_API_URL?.replace(/\/$/, "");
+    const mensagem = document.getElementById("mensagem");
+    const bilhetes = document.getElementById("bilhetes");
+    function escapeHtml(valor) { return String(valor).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    document.getElementById("buscar").addEventListener("click", async () => {
+      const nome = document.getElementById("nome").value.trim();
+      const whatsapp = document.getElementById("zap").value.trim();
+      mensagem.textContent = ""; bilhetes.innerHTML = "";
+      try {
+        const resposta = await fetch(api + "/recover-ticket", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({nome, whatsapp}) });
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.error);
+        if (!dados.tickets.length) { mensagem.textContent = "Nenhum bilhete pago foi encontrado com esses dados."; return; }
+        dados.tickets.forEach((ticket, indice) => {
+          const card = document.createElement("div"); card.className = "ticket ticket-recovery";
+          card.innerHTML = '<div class="ticket-in"><h3>Festa Anos 80</h3><div class="small">Ingresso ' + (ticket.tipo_ingresso === "crianca" ? "Criança" : "Adulto") + '</div><div class="qr"><div id="qr-' + indice + '"></div></div><div class="who">' + escapeHtml(ticket.nome) + '</div><div>' + escapeHtml(ticket.ct) + '</div><div class="small">' + escapeHtml(ticket.codigo_ingresso) + '</div></div>';
+          bilhetes.appendChild(card);
+          new QRCode(document.getElementById("qr-" + indice), { text:"FESTA80CT|" + ticket.codigo_ingresso, width:200, height:200 });
+        });
+      } catch (erro) { mensagem.textContent = erro.message || "Não foi possível recuperar o bilhete."; }
+    });
+  </script>
+</body>
+</html>

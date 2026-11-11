@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organização — Festa Anos 80</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="tag">Organização</div>
+      <h1>Painel</h1>
+      <p class="sub">Pedidos, pagamentos e check-ins em um só lugar.</p>
+      <div id="metricas" class="info"></div>
+      <div class="admin-actions">
+        <input id="busca" placeholder="Buscar nome, CT ou WhatsApp">
+        <button id="exportar" class="btn alt" type="button">Baixar CSV</button>
+      </div>
+      <p id="mensagem" class="small error-message"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>CT</th><th>Tipo</th><th>Status</th><th>Código</th><th>Entrada</th></tr></thead>
+          <tbody id="pedidos"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script>
+    const api = window.FESTA_API_URL?.replace(/\/$/, "");
+    const segredo = sessionStorage.getItem("admin-secret") || prompt("Senha da organização:");
+    const busca = document.getElementById("busca");
+    let pedidos = [];
+    if (segredo) sessionStorage.setItem("admin-secret", segredo);
+
+    function texto(valor) { return String(valor ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    function renderizar() {
+      const termo = busca.value.trim().toLowerCase();
+      const filtrados = pedidos.filter(p => [p.nome,p.ct,p.whatsapp,p.codigo_ingresso].join(" ").toLowerCase().includes(termo));
+      document.getElementById("pedidos").innerHTML = filtrados.map(p => `<tr><td>${texto(p.nome)}</td><td>${texto(p.ct)}</td><td>${p.tipo_ingresso === "crianca" ? "Criança" : "Adulto"}</td><td>${texto(p.status_pagamento)}</td><td>${texto(p.codigo_ingresso || "—")}</td><td>${p.usado_em ? "Usado" : "—"}</td></tr>`).join("");
+    }
+    function metricas() {
+      const pago = pedidos.filter(p => p.status_pagamento === "paid");
+      const usado = pedidos.filter(p => p.usado_em);
+      document.getElementById("metricas").innerHTML = [
+        ["Pedidos", pedidos.length], ["Pagos", pago.length], ["Entradas", usado.length], ["Pendentes", pedidos.filter(p => p.status_pagamento === "pending").length]
+      ].map(([nome,valor]) => `<div><b>${nome}</b><span>${valor}</span></div>`).join("");
+    }
+    async function carregar() {
+      try {
+        const resposta = await fetch(api + "/admin-orders", { headers: { "X-Admin-Secret": segredo } });
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.error);
+        pedidos = dados.pedidos; metricas(); renderizar();
+      } catch (erro) { document.getElementById("mensagem").textContent = erro.message || "Não foi possível carregar o painel."; }
+    }
+    function csv() {
+      const cabecalho = ["Nome","CT","WhatsApp","Tipo","Valor","Status","Código","Pago em","Usado em"];
+      const linhas = pedidos.map(p => [p.nome,p.ct,p.whatsapp,p.tipo_ingresso, (p.valor_centavos/100).toFixed(2),p.status_pagamento,p.codigo_ingresso,p.pago_em,p.usado_em]);
+      const arquivo = [cabecalho,...linhas].map(l => l.map(v => '"' + String(v ?? "").replaceAll('"','""') + '"').join(";")).join("\n");
+      const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([arquivo], {type:"text/csv;charset=utf-8"})); link.download = "pedidos-festa-anos-80.csv"; link.click();
+    }
+    busca.addEventListener("input", renderizar);
+    document.getElementById("exportar").addEventListener("click", csv);
+    carregar();
+  </script>
+</body>
+</html>

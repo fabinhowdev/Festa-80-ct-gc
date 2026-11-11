@@ -34,6 +34,8 @@ Cadastro → Checkout InfinitePay → Pagamento aprovado → Webhook → Bilhete
 .
 ├── index.html                    Página de cadastro e bilhete
 ├── checkin.html                  Tela de validação na portaria
+├── admin.html                    Painel protegido da organização
+├── recuperar-bilhete.html        Recuperação de bilhete pelo comprador
 ├── styles.css                    Estilos da aplicação
 ├── app.js                        Fluxo de cadastro e consulta do ingresso
 ├── config.js                     URL pública das Functions do Supabase
@@ -76,6 +78,7 @@ npx supabase secrets set SITE_URL="https://seu-dominio.com"
 npx supabase secrets set INFINITEPAY_API_KEY="inchk_sua_chave"
 npx supabase secrets set INFINITEPAY_WEBHOOK_SECRET="segredo-longo-e-aleatorio"
 npx supabase secrets set CHECKIN_SECRET="senha-forte-da-portaria"
+npx supabase secrets set ADMIN_SECRET="senha-forte-do-painel"
 ~~~
 
 ### Publicar as Functions
@@ -85,6 +88,8 @@ npx supabase functions deploy create-checkout
 npx supabase functions deploy infinitepay-webhook
 npx supabase functions deploy get-ticket
 npx supabase functions deploy validate-ticket
+npx supabase functions deploy admin-orders
+npx supabase functions deploy recover-ticket
 ~~~
 
 ### Frontend

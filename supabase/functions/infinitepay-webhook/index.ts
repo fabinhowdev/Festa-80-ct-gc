@@ -12,7 +12,9 @@ Deno.serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const event = String(payload.event ?? payload.type ?? payload.status ?? "").toLowerCase();
+    // A InfinitePay envia order_nsu e transaction_nsu no webhook "paid".
+    // Nem todos os formatos incluem um campo explícito chamado "event".
+    const event = String(payload.event ?? payload.type ?? payload.status ?? "paid").toLowerCase();
     const orderNsu = payload.order_nsu ?? payload.order?.order_nsu ?? payload.data?.order_nsu;
     const transactionNsu = payload.transaction_nsu ?? payload.transaction?.nsu ?? payload.data?.transaction_nsu ?? null;
 
@@ -37,14 +39,6 @@ Deno.serve(async (req) => {
         .eq("infinitepay_order_nsu", orderNsu)
         .eq("status_pagamento", "pending");
       if (error) throw error;
-    }
-
-    if (event === "canceled" || event === "refunded") {
-      await supabase
-        .from("pedidos")
-        .update({ status_pagamento: event, atualizado_em: new Date().toISOString() })
-        .eq("infinitepay_order_nsu", orderNsu)
-        .eq("status_pagamento", "pending");
     }
 
     return response(200);

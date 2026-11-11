@@ -56,7 +56,10 @@ Deno.serve(async (req) => {
         },
         webhook: {
           url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(webhookSecret)}`,
-          events: ["paid", "canceled", "refunded"],
+          // Esta URL recebe apenas confirmações de pagamento aprovado.
+          // Isso mantém compatibilidade com o payload da InfinitePay,
+          // que pode não incluir o nome do evento no corpo da notificação.
+          events: ["paid"],
         },
       }),
     });

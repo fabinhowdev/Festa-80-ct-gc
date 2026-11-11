@@ -15,7 +15,7 @@
       <div id="metricas" class="info"></div>
       <div class="admin-actions">
         <input id="busca" placeholder="Buscar nome, CT ou WhatsApp">
-        <button id="exportar" class="btn alt" type="button">Baixar CSV</button>
+        <button id="exportar" class="btn alt" type="button">Baixar Excel</button>
       </div>
       <p id="mensagem" class="small error-message"></p>
       <div class="table-wrap">
@@ -26,6 +26,7 @@
       </div>
     </section>
   </main>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script>
     const api = window.FESTA_API_URL?.replace(/\/$/, "");
@@ -55,14 +56,26 @@
         pedidos = dados.pedidos; metricas(); renderizar();
       } catch (erro) { document.getElementById("mensagem").textContent = erro.message || "Não foi possível carregar o painel."; }
     }
-    function csv() {
-      const cabecalho = ["Nome","CT","WhatsApp","Tipo","Valor","Status","Código","Pago em","Usado em"];
-      const linhas = pedidos.map(p => [p.nome,p.ct,p.whatsapp,p.tipo_ingresso, (p.valor_centavos/100).toFixed(2),p.status_pagamento,p.codigo_ingresso,p.pago_em,p.usado_em]);
-      const arquivo = [cabecalho,...linhas].map(l => l.map(v => '"' + String(v ?? "").replaceAll('"','""') + '"').join(";")).join("\n");
-      const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([arquivo], {type:"text/csv;charset=utf-8"})); link.download = "pedidos-festa-anos-80.csv"; link.click();
+    function exportarExcel() {
+      const linhas = pedidos.map(p => ({
+        Nome: p.nome,
+        CT: p.ct,
+        WhatsApp: p.whatsapp,
+        Tipo: p.tipo_ingresso === "crianca" ? "Criança" : "Adulto",
+        "Valor (R$)": p.valor_centavos / 100,
+        Status: p.status_pagamento,
+        "Código do ingresso": p.codigo_ingresso || "",
+        "Pago em": p.pago_em || "",
+        "Entrada em": p.usado_em || "",
+      }));
+      const planilha = XLSX.utils.json_to_sheet(linhas);
+      planilha["!cols"] = [{ wch: 28 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 13 }, { wch: 14 }, { wch: 20 }, { wch: 24 }, { wch: 24 }];
+      const arquivo = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(arquivo, planilha, "Pedidos");
+      XLSX.writeFile(arquivo, "pedidos-festa-anos-80.xlsx");
     }
     busca.addEventListener("input", renderizar);
-    document.getElementById("exportar").addEventListener("click", csv);
+    document.getElementById("exportar").addEventListener("click", exportarExcel);
     carregar();
   </script>
 </body>

@@ -2,8 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
 
 const TICKET_TYPES = {
-  adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 5000 },
-  crianca: { label: "Ingresso criança — Festa Anos 80 do CT", priceCents: 3500 },
+  adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 100 },
+  crianca: { label: "Ingresso criança — Festa Anos 80 do CT", priceCents: 100 },
 } as const;
 
 Deno.serve(async (req) => {

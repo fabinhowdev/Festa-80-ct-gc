@@ -4,18 +4,28 @@ let dados = {};
 let pedidoAtual = null;
 
 const CFG = {
-  data: "Sabádo, 19/12/2026",
-  hora: "19hrs",
-  local: "CT raíz Gc",
-  preco: 30,
+  data: "Sábado, 19/12/2026",
+  hora: "19h",
+  local: "CT Raiz GC",
+  ingressos: {
+    adulto: { nome: "Adulto", preco: 1 },
+    crianca: { nome: "Criança", preco: 1 },
+  },
 };
 
-const valor = `R$ ${CFG.preco.toFixed(2).replace(".", ",")}`;
 getElement("i-data").textContent = CFG.data;
 getElement("i-hora").textContent = CFG.hora;
 getElement("i-local").textContent = CFG.local;
-getElement("i-preco").textContent = valor;
-getElement("p-valor").textContent = valor;
+
+function atualizarValor() {
+  const ingresso = CFG.ingressos[getElement("tipo-ingresso").value];
+  const valor = `R$ ${ingresso.preco.toFixed(2).replace(".", ",")}`;
+  getElement("i-preco").textContent = `A partir de ${valor}`;
+  getElement("p-valor").textContent = valor;
+}
+
+atualizarValor();
+getElement("tipo-ingresso").addEventListener("change", atualizarValor);
 
 function mudarEtapa(etapaAtual) {
   for (let etapa = 1; etapa <= 3; etapa += 1) {
@@ -33,6 +43,7 @@ function mostrarBilhete(bilhete) {
   getElement("t-ct").textContent = bilhete.ct;
   getElement("t-cod").textContent = bilhete.cod;
   getElement("t-info").textContent = `${CFG.data} · ${CFG.hora}`;
+  getElement("t-tipo").textContent = `Ingresso ${bilhete.tipo}`;
 
   const qrCode = getElement("qrcode");
   qrCode.innerHTML = "";
@@ -82,10 +93,19 @@ async function consultarPedido() {
 getElement("b1").addEventListener("click", async () => {
   const nome = getElement("nome").value.trim();
   const ct = getElement("ct").value.trim();
+  const tipoIngresso = getElement("tipo-ingresso").value;
   const zap = getElement("zap").value.trim();
 
-  if (!nome || !ct || zap.replace(/\D/g, "").length < 10) {
-    getElement("erro").textContent = "Preencha nome, CT e um WhatsApp válido.";
+  if (!nome) {
+    getElement("erro").textContent = "Informe o nome completo.";
+    return;
+  }
+  if (!ct) {
+    getElement("erro").textContent = "Escolha seu CT.";
+    return;
+  }
+  if (zap.replace(/\D/g, "").length < 10) {
+    getElement("erro").textContent = "Informe um WhatsApp válido, com DDD.";
     return;
   }
   if (!API_URL || API_URL.includes("COLE_AQUI")) {
@@ -101,7 +121,7 @@ getElement("b1").addEventListener("click", async () => {
     const resposta = await fetch(`${API_URL}/create-checkout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, ct, whatsapp: zap }),
+      body: JSON.stringify({ nome, ct, tipoIngresso, whatsapp: zap }),
     });
     const resultado = await resposta.json();
     if (!resposta.ok) throw new Error(resultado.error);

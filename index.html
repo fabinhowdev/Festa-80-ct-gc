@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Página de ingressos da Festa Anos 80 do CT.">
+  <title>Festa Anos 80 do CT</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="tag">CT presents</div>
+      <h1>Festa<br>Anos 80</h1>
+      <p class="sub">Neon, new wave e muita nostalgia. Venha de look oitentista!</p>
+
+      <div class="info">
+        <div><b>Data</b><span id="i-data"></span></div>
+        <div><b>Horário</b><span id="i-hora"></span></div>
+        <div><b>Local</b><span id="i-local"></span></div>
+        <div><b>Ingresso</b><span id="i-preco"></span></div>
+      </div>
+
+      <a class="btn" href="#ingresso">Garantir meu ingresso</a>
+    </header>
+
+    <section id="ingresso" class="card">
+      <div class="steps" aria-label="Etapas da compra">
+        <span id="s1" class="on">1 Cadastro</span>
+        <span id="s2">2 Pagamento</span>
+        <span id="s3">3 Bilhete</span>
+      </div>
+
+      <div id="step1">
+        <h2>Cadastro</h2>
+        <label for="nome">Nome completo</label>
+        <input id="nome" autocomplete="name" placeholder="Seu nome">
+
+        <label for="ct">Escolha seu CT</label>
+        <select id="ct" required>
+          <option value="">Selecione seu CT</option>
+          <option value="Gleba C">Gleba C</option>
+          <option value="CT dos 46">CT dos 46</option>
+          <option value="Alto da Cruz">Alto da Cruz</option>
+          <option value="Outro">Outro</option>
+        </select>
+
+        <label for="zap">WhatsApp</label>
+        <input id="zap" type="tel" autocomplete="tel" placeholder="(71) 90000-0000">
+
+        <p id="erro" class="small error-message" aria-live="polite"></p>
+        <button class="btn" id="b1" type="button">Continuar para o pagamento</button>
+      </div>
+
+      <div id="step2" class="hidden">
+        <h2>Confirmação do pagamento</h2>
+        <p>Valor: <b id="p-valor"></b></p>
+        <p id="payment-status" class="small" aria-live="polite">
+          Após pagar na InfinitePay, aguarde a confirmação e atualize esta tela.
+        </p>
+        <button class="btn alt" id="b2" type="button">Atualizar status do pagamento</button>
+      </div>
+
+      <div id="step3" class="hidden">
+        <h2>Seu bilhete</h2>
+        <div class="ticket">
+          <div class="ticket-in">
+            <h3>Festa Anos 80</h3>
+            <div class="small" id="t-info"></div>
+            <div class="qr"><div id="qrcode"></div></div>
+            <div class="who" id="t-nome"></div>
+            <div id="t-ct"></div>
+            <div class="small" id="t-cod"></div>
+          </div>
+        </div>
+        <p class="small ticket-instructions">Tire um print deste bilhete e apresente o QR Code na entrada.</p>
+      </div>
+    </section>
+
+    <footer>Festa Anos 80 do CT</footer>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

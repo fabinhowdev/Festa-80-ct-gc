@@ -1,0 +1,11 @@
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.infinitepay-webhook]
+verify_jwt = false
+
+[functions.get-ticket]
+verify_jwt = false
+
+[functions.validate-ticket]
+verify_jwt = false

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portaria — Festa Anos 80</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="tag">Portaria</div>
+      <h1>Check-in</h1>
+      <p class="sub">Digite ou use um leitor de QR Code para informar o código do ingresso.</p>
+
+      <label for="codigo">Código do ingresso</label>
+      <input id="codigo" autocomplete="off" placeholder="CT80-XXXXXXXXXX">
+      <p id="resultado" class="small error-message" aria-live="polite"></p>
+      <button id="validar" class="btn" type="button">Validar entrada</button>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const apiUrl = window.FESTA_API_URL?.replace(/\/$/, "");
+    const codigo = document.getElementById("codigo");
+    const resultado = document.getElementById("resultado");
+    const segredo = window.sessionStorage.getItem("checkin-secret")
+      || window.prompt("Digite a senha da portaria:");
+
+    if (segredo) window.sessionStorage.setItem("checkin-secret", segredo);
+
+    async function validar() {
+      const valor = codigo.value.trim().replace("FESTA80CT|", "");
+      if (!valor || !segredo || !apiUrl || apiUrl.includes("COLE_AQUI")) {
+        resultado.textContent = "Informe um código e configure o endereço do Supabase.";
+        return;
+      }
+
+      const resposta = await fetch(`${apiUrl}/validate-ticket`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Checkin-Secret": segredo,
+        },
+        body: JSON.stringify({ codigo: valor }),
+      });
+      const dados = await resposta.json();
+      resultado.textContent = dados.mensagem || dados.error || "Não foi possível validar o ingresso.";
+      resultado.style.color = dados.liberado ? "var(--cyan)" : "var(--yellow)";
+      if (dados.liberado) codigo.value = "";
+      codigo.focus();
+    }
+
+    document.getElementById("validar").addEventListener("click", validar);
+    codigo.addEventListener("keydown", (evento) => {
+      if (evento.key === "Enter") validar();
+    });
+    codigo.focus();
+  </script>
+</body>
+</html>

@@ -1,19 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
 
-const EVENT_PRICE_CENTS = 3000;
-const EVENT_NAME = "Ingresso — Festa Anos 80 do CT";
+const TICKET_TYPES = {
+  adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 5000 },
+  crianca: { label: "Ingresso criança — Festa Anos 80 do CT", priceCents: 3500 },
+} as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
 
   try {
-    const { nome, ct, whatsapp } = await req.json();
+    const { nome, ct, tipoIngresso, whatsapp } = await req.json();
     const phoneDigits = String(whatsapp ?? "").replace(/\D/g, "");
+    const ingresso = TICKET_TYPES[tipoIngresso as keyof typeof TICKET_TYPES];
 
     if (typeof nome !== "string" || nome.trim().length < 3 ||
-        typeof ct !== "string" || ct.trim().length < 2 || phoneDigits.length < 10) {
+        typeof ct !== "string" || ct.trim().length < 2 || !ingresso || phoneDigits.length < 10) {
       return json({ error: "Preencha nome, CT e um WhatsApp válido." }, 422);
     }
 
@@ -29,7 +32,8 @@ Deno.serve(async (req) => {
         nome: nome.trim(),
         ct: ct.trim(),
         whatsapp: phoneDigits,
-        valor_centavos: EVENT_PRICE_CENTS,
+        tipo_ingresso: tipoIngresso,
+        valor_centavos: ingresso.priceCents,
         infinitepay_order_nsu: orderNsu,
       })
       .select("id")
@@ -48,7 +52,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         order_nsu: orderNsu,
         redirect_url: `${siteUrl}/?pedido=${pedido.id}`,
-        items: [{ quantity: 1, price: EVENT_PRICE_CENTS, description: EVENT_NAME }],
+        items: [{ quantity: 1, price: ingresso.priceCents, description: ingresso.label }],
         // O cadastro do evento já guarda o WhatsApp. Não enviamos o telefone
         // para pré-preencher a InfinitePay, pois ela rejeita formatos que
         // variam conforme DDD e impede a criação do checkout.

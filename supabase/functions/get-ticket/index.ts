@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   );
   const { data, error } = await supabase
     .from("pedidos")
-    .select("nome, ct, codigo_ingresso, status_pagamento")
+    .select("nome, ct, tipo_ingresso, codigo_ingresso, status_pagamento")
     .eq("id", pedidoId)
     .single();
 
@@ -21,6 +21,11 @@ Deno.serve(async (req) => {
 
   return json({
     status: "paid",
-    ticket: { nome: data.nome, ct: data.ct, cod: data.codigo_ingresso },
+    ticket: {
+      nome: data.nome,
+      ct: data.ct,
+      tipo: data.tipo_ingresso === "crianca" ? "Criança" : "Adulto",
+      cod: data.codigo_ingresso,
+    },
   });
 });

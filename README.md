@@ -1,69 +1,137 @@
-# Festa Anos 80 — pagamento e ingressos
+# Festa Anos 80 do CT
 
-Este projeto usa **Supabase + InfinitePay**. O site coleta o cadastro, a
-InfinitePay processa o Pix ou cartão e o Supabase só libera o QR Code depois
-que recebe o evento de pagamento aprovado.
+Landing page de venda de ingressos para a Festa Anos 80 do CT. O projeto recebe
+o cadastro, cria um checkout na InfinitePay e gera um bilhete com QR Code após
+a confirmação do pagamento.
 
-## O que está pronto
+**Site:** https://festa-raizgc.netlify.app/
 
-- `supabase/migrations/`: tabelas de pedidos e check-ins.
-- `create-checkout`: cria pedido e checkout na InfinitePay.
-- `infinitepay-webhook`: recebe confirmação de pagamento e gera o ingresso.
-- `get-ticket`: entrega o bilhete somente para pedido pago.
-- `validate-ticket`: registra o primeiro uso do ingresso na portaria.
-- `checkin.html`: página de validação na entrada.
+## Como funciona
+
+~~~
+Cadastro → Checkout InfinitePay → Pagamento aprovado → Webhook → Bilhete com QR Code → Check-in
+~~~
+
+1. A pessoa informa nome, CT e WhatsApp no site.
+2. O backend registra o pedido e cria um link de checkout na InfinitePay.
+3. A pessoa paga por Pix ou cartão na página segura da InfinitePay.
+4. O webhook confirma o pagamento e gera um código único de ingresso.
+5. Ao retornar ao site, a pessoa vê o bilhete com QR Code.
+6. Na entrada, a equipe valida o código em checkin.html. O primeiro uso é
+   liberado; os seguintes são bloqueados.
+
+## Tecnologias
+
+- HTML, CSS e JavaScript puro
+- [Supabase](https://supabase.com/) para banco de dados e Edge Functions
+- [InfinitePay Checkout Integrado](https://ajuda.infinitepay.io/pt-BR/articles/10766888-como-usar-o-checkout-integrado-da-infinitepay)
+- QRCode.js para gerar o QR Code
+- Netlify para hospedagem
+
+## Estrutura
+
+~~~
+.
+├── index.html                    Página de cadastro e bilhete
+├── checkin.html                  Tela de validação na portaria
+├── styles.css                    Estilos da aplicação
+├── app.js                        Fluxo de cadastro e consulta do ingresso
+├── config.js                     URL pública das Functions do Supabase
+└── supabase/
+    ├── migrations/               Tabelas de pedidos e check-ins
+    └── functions/
+        ├── create-checkout/      Cria pedido e checkout InfinitePay
+        ├── infinitepay-webhook/  Confirma pagamento e gera código
+        ├── get-ticket/           Entrega bilhete de pedido pago
+        └── validate-ticket/      Registra check-in na entrada
+~~~
 
 ## Configuração
 
-1. Crie um projeto no [Supabase](https://supabase.com/dashboard).
-2. No **SQL Editor**, execute o conteúdo de
-   `supabase/migrations/20261110_create_event_tables.sql`.
-3. Instale a Supabase CLI, autentique-se e vincule o projeto:
+### Banco de dados
 
-       supabase login
-       supabase link --project-ref SEU_PROJECT_REF
+Crie um projeto no Supabase e, no SQL Editor, execute o conteúdo de:
 
-4. Cadastre os segredos. Escolha valores longos e aleatórios para os dois
-   segredos; não os publique nem os envie pelo WhatsApp:
+~~~
+supabase/migrations/20261110_create_event_tables.sql
+~~~
 
-       supabase secrets set INFINITEPAY_API_KEY="inchk_..."
-       supabase secrets set INFINITEPAY_WEBHOOK_SECRET="um-segredo-aleatorio-longo"
-       supabase secrets set CHECKIN_SECRET="senha-da-portaria"
-       supabase secrets set SITE_URL="https://seu-dominio.com"
+### Supabase CLI
 
-5. Faça o deploy das funções:
+Com Node.js 20+ instalado:
 
-       supabase functions deploy create-checkout
-       supabase functions deploy infinitepay-webhook
-       supabase functions deploy get-ticket
-       supabase functions deploy validate-ticket
+~~~powershell
+npm install supabase --save-dev
+npx supabase login
+npx supabase link --project-ref SEU_PROJECT_REF
+~~~
 
-6. No arquivo `config.js`, troque o valor por:
+### Segredos
 
-       window.FESTA_API_URL = "https://SEU_PROJECT_REF.supabase.co/functions/v1";
+Cadastre os segredos apenas no Supabase. Nunca coloque API Keys, senhas ou
+variáveis de ambiente no HTML, JavaScript público ou repositório:
 
-7. Publique os arquivos do site no mesmo endereço definido em `SITE_URL`.
-   A InfinitePay usa esse endereço para trazer a pessoa de volta após o
-   pagamento.
+~~~powershell
+npx supabase secrets set SITE_URL="https://seu-dominio.com"
+npx supabase secrets set INFINITEPAY_API_KEY="inchk_sua_chave"
+npx supabase secrets set INFINITEPAY_WEBHOOK_SECRET="segredo-longo-e-aleatorio"
+npx supabase secrets set CHECKIN_SECRET="senha-forte-da-portaria"
+~~~
+
+### Publicar as Functions
+
+~~~powershell
+npx supabase functions deploy create-checkout
+npx supabase functions deploy infinitepay-webhook
+npx supabase functions deploy get-ticket
+npx supabase functions deploy validate-ticket
+~~~
+
+### Frontend
+
+Em config.js, informe a URL pública das Functions:
+
+~~~js
+window.FESTA_API_URL = "https://SEU_PROJECT_REF.supabase.co/functions/v1";
+~~~
+
+Publique os arquivos estáticos no mesmo domínio configurado em SITE_URL.
 
 ## InfinitePay
 
-No app da InfinitePay, habilite **Vendas → Checkout → Checkout Integrado** e
-crie uma API Key. O backend configura um checkout de uso único e recebe os
-eventos `paid`, `canceled` e `refunded`.
+1. Acesse **Vendas → Checkout** no app ou painel da InfinitePay.
+2. Habilite o **Checkout Integrado**.
+3. Crie uma API Key.
+4. Salve-a no segredo INFINITEPAY_API_KEY do Supabase.
 
-## Teste obrigatório
+O backend cria um checkout de uso único. A chave da InfinitePay permanece
+exclusivamente no Supabase.
 
-Antes de divulgar:
+## Operação da portaria
 
-1. Faça uma compra de teste.
-2. Confirme que o pedido passa de `pending` para `paid` na tabela `pedidos`.
-3. Confira se o QR Code aparece após voltar ao site.
-4. Abra `checkin.html`, informe a senha de portaria e valide o QR Code.
-5. Tente validar o mesmo código novamente; deve aparecer que ele já foi usado.
+Abra:
 
-## Dados pessoais
+~~~
+https://seu-dominio.com/checkin.html
+~~~
 
-O projeto guarda nome, CT e WhatsApp apenas para operar os ingressos. Publique
-uma política de privacidade curta e não compartilhe a tabela de participantes
-fora da organização.
+Informe a senha definida em CHECKIN_SECRET e digite ou leia o código do QR
+Code. Um ingresso aprovado só pode ser usado uma vez.
+
+## Teste antes de divulgar
+
+1. Faça uma compra real de teste.
+2. Confirme no Supabase que o pedido ficou com status paid.
+3. Verifique o bilhete e o QR Code na página de retorno.
+4. Valide o código em checkin.html.
+5. Tente validar o mesmo código novamente; ele deve ser recusado.
+
+## Segurança e privacidade
+
+- O QR Code contém apenas o identificador do ingresso.
+- Nome, CT e WhatsApp são usados somente para operar os ingressos.
+- Restrinja a senha da portaria à equipe do evento.
+
+## Licença
+
+Projeto de uso interno da organização da Festa Anos 80 do CT.

@@ -45,6 +45,12 @@
           <option value="Outro">Outro</option>
         </select>
 
+        <label for="tipo-ingresso">Tipo de ingresso</label>
+        <select id="tipo-ingresso" required>
+          <option value="adulto">Adulto — R$ 50,00</option>
+          <option value="crianca">Criança — R$ 35,00</option>
+        </select>
+
         <label for="zap">WhatsApp</label>
         <input id="zap" type="tel" autocomplete="tel" placeholder="(71) 90000-0000">
 
@@ -67,6 +73,7 @@
           <div class="ticket-in">
             <h3>Festa Anos 80</h3>
             <div class="small" id="t-info"></div>
+            <div class="small" id="t-tipo"></div>
             <div class="qr"><div id="qrcode"></div></div>
             <div class="who" id="t-nome"></div>
             <div id="t-ct"></div>

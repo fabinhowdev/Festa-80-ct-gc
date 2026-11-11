@@ -4,9 +4,9 @@ let dados = {};
 let pedidoAtual = null;
 
 const CFG = {
-  data: "Sábado, 00/00/2026",
-  hora: "20h",
-  local: "Local da festa",
+  data: "Sabádo, 19/12/2026",
+  hora: "19hrs",
+  local: "CT raíz Gc",
   preco: 30,
 };
 

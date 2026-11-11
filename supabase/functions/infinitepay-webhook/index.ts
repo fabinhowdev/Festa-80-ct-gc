@@ -6,7 +6,7 @@ function response(status = 200) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return response(405);
-  if (req.url.searchParams.get("secret") !== Deno.env.get("INFINITEPAY_WEBHOOK_SECRET")) {
+  if (new URL(req.url).searchParams.get("secret") !== Deno.env.get("INFINITEPAY_WEBHOOK_SECRET")) {
     return response(401);
   }
 

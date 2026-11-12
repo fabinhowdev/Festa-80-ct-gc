@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/cors.ts";
+import { isWhatsAppValido, normalizarWhatsApp } from "../_shared/phone.ts";
 
 const TICKET_TYPES = {
   adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 100 },
@@ -12,11 +13,11 @@ Deno.serve(async (req) => {
 
   try {
     const { nome, ct, tipoIngresso, whatsapp } = await req.json();
-    const phoneDigits = String(whatsapp ?? "").replace(/\D/g, "");
+    const phoneDigits = normalizarWhatsApp(whatsapp);
     const ingresso = TICKET_TYPES[tipoIngresso as keyof typeof TICKET_TYPES];
 
     if (typeof nome !== "string" || nome.trim().length < 3 ||
-        typeof ct !== "string" || ct.trim().length < 2 || !ingresso || phoneDigits.length < 10) {
+        typeof ct !== "string" || ct.trim().length < 2 || !ingresso || !isWhatsAppValido(phoneDigits)) {
       return json({ error: "Preencha nome, CT e um WhatsApp válido." }, 422);
     }
 
@@ -45,6 +46,7 @@ Deno.serve(async (req) => {
     const webhookSecret = Deno.env.get("INFINITEPAY_WEBHOOK_SECRET");
     const apiKey = Deno.env.get("INFINITEPAY_API_KEY");
     if (!siteUrl || !webhookSecret || !apiKey) throw new Error("Segredos do pagamento não configurados.");
+    const checkoutExpiraEm = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     const response = await fetch("https://api.checkout.infinitepay.io/links", {
       method: "POST",
@@ -60,6 +62,7 @@ Deno.serve(async (req) => {
         options: {
           single_payment: true,
           payment_methods_enabled: ["pix", "credit_card"],
+          valid_until: checkoutExpiraEm,
         },
         webhook: {
           url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/infinitepay-webhook?secret=${encodeURIComponent(webhookSecret)}`,

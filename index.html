@@ -12,7 +12,7 @@
     <header class="hero">
       <div class="tag">CT presents</div>
       <h1>Festa<br>Anos 80</h1>
-      <p class="sub">Neon, new wave e muita nostalgia. Venha de look oitentista!</p>
+      <p class="sub">Venha curtir com a gente</p>
 
       <div class="info">
         <div><b>Data</b><span id="i-data"></span></div>
@@ -52,7 +52,7 @@
         </select>
 
         <label for="zap">WhatsApp</label>
-        <input id="zap" type="tel" autocomplete="tel" placeholder="(71) 90000-0000">
+        <input id="zap" type="tel" autocomplete="tel" inputmode="numeric" maxlength="15" placeholder="(71) 99999-9999">
 
         <p id="erro" class="small error-message" aria-live="polite"></p>
         <button class="btn" id="b1" type="button">Continuar para o pagamento</button>
@@ -69,7 +69,11 @@
 
       <div id="step3" class="hidden">
         <h2>Seu bilhete</h2>
-        <div class="ticket">
+        <aside class="important-ticket" role="alert">
+          <strong>Importante: salve seu ingresso agora.</strong>
+          <span>Baixe a imagem e apresente o QR Code na entrada. Sem ele, sua entrada não poderá ser validada.</span>
+        </aside>
+        <div id="ticket-capture" class="ticket">
           <div class="ticket-in">
             <h3>Festa Anos 80</h3>
             <div class="small" id="t-info"></div>
@@ -80,18 +84,21 @@
             <div class="small" id="t-cod"></div>
           </div>
         </div>
-        <p class="small ticket-instructions">Tire um print deste bilhete e apresente o QR Code na entrada.</p>
+        <button id="baixar-bilhete" class="btn download-ticket" type="button">Salvar ingresso como imagem</button>
+        <p id="save-status" class="small ticket-instructions" aria-live="polite">Salve a imagem na galeria do seu celular ou nos seus arquivos.</p>
       </div>
     </section>
 
     <footer>
       Festa Anos 80 do CT · Desenvolvido por
-      <a href="https://github.com/fabinhowdev" target="_blank" rel="noopener noreferrer">Fabio Dev</a>
+      <a href="https://github.com/fabinhowdev" target="_blank" rel="noopener noreferrer">Fábio Nascimento</a>
     </footer>
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="config.js"></script>
+  <script src="whatsapp.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

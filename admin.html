@@ -13,40 +13,79 @@
       <h1>Painel</h1>
       <p class="sub">Pedidos, pagamentos e check-ins em um só lugar.</p>
       <div id="metricas" class="info"></div>
+      <div id="filtros-status" class="status-filters" aria-label="Filtrar pedidos por status">
+        <button class="status-filter" type="button" data-status="todos">Todos</button>
+        <button class="status-filter active" type="button" data-status="paid">Pagos</button>
+        <button class="status-filter" type="button" data-status="pending">Pendentes</button>
+        <button class="status-filter" type="button" data-status="used">Usados</button>
+        <button class="status-filter" type="button" data-status="canceled">Cancelados</button>
+        <button class="status-filter" type="button" data-status="refunded">Estornados</button>
+      </div>
       <div class="admin-actions">
-        <input id="busca" placeholder="Buscar nome, CT ou WhatsApp">
+        <input id="busca" type="search" placeholder="Buscar nome, CT, código ou WhatsApp">
         <button id="exportar" class="btn alt" type="button">Baixar Excel</button>
       </div>
       <p id="mensagem" class="small error-message"></p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>CT</th><th>Tipo</th><th>Status</th><th>Código</th><th>Entrada</th></tr></thead>
+          <thead><tr><th>Nome</th><th>CT</th><th>WhatsApp</th><th>Tipo</th><th>Status</th><th>Código</th><th>Entrada</th><th></th></tr></thead>
           <tbody id="pedidos"></tbody>
         </table>
       </div>
+      <section id="detalhe-pedido" class="order-details hidden" aria-live="polite"></section>
     </section>
   </main>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="config.js"></script>
+  <script src="whatsapp.js"></script>
   <script>
     const api = window.FESTA_API_URL?.replace(/\/$/, "");
     const segredo = sessionStorage.getItem("admin-secret") || prompt("Senha da organização:");
     const busca = document.getElementById("busca");
+    const filtros = document.getElementById("filtros-status");
+    const detalhe = document.getElementById("detalhe-pedido");
     let pedidos = [];
+    let statusSelecionado = "paid";
     if (segredo) sessionStorage.setItem("admin-secret", segredo);
+    WhatsApp.aplicarMascaraWhatsApp(busca, false);
 
     function texto(valor) { return String(valor ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
     function renderizar() {
       const termo = busca.value.trim().toLowerCase();
-      const filtrados = pedidos.filter(p => [p.nome,p.ct,p.whatsapp,p.codigo_ingresso].join(" ").toLowerCase().includes(termo));
-      document.getElementById("pedidos").innerHTML = filtrados.map(p => `<tr><td>${texto(p.nome)}</td><td>${texto(p.ct)}</td><td>${p.tipo_ingresso === "crianca" ? "Criança" : "Adulto"}</td><td>${texto(p.status_pagamento)}</td><td>${texto(p.codigo_ingresso || "—")}</td><td>${p.usado_em ? "Usado" : "—"}</td></tr>`).join("");
+      const telefone = WhatsApp.somenteNumeros(termo);
+      const filtrados = pedidos.filter(p => {
+        const correspondeStatus = statusSelecionado === "todos"
+          || (statusSelecionado === "used" ? Boolean(p.usado_em) : p.status_pagamento === statusSelecionado);
+        const correspondeBusca = telefone
+          ? String(p.whatsapp ?? "").replace(/\D/g, "").includes(telefone)
+          : [p.nome, p.ct, p.codigo_ingresso].join(" ").toLowerCase().includes(termo);
+        return correspondeStatus && correspondeBusca;
+      });
+      document.getElementById("pedidos").innerHTML = filtrados.map(p => `<tr><td>${texto(p.nome)}</td><td>${texto(p.ct)}</td><td>${texto(WhatsApp.formatarWhatsApp(p.whatsapp))}</td><td>${p.tipo_ingresso === "crianca" ? "Criança" : "Adulto"}</td><td>${texto(p.status_pagamento)}</td><td>${texto(p.codigo_ingresso || "—")}</td><td>${p.usado_em ? "Usado" : "—"}</td><td><button class="table-button" type="button" data-order-id="${texto(p.id)}">Ver</button></td></tr>`).join("");
     }
     function metricas() {
       const pago = pedidos.filter(p => p.status_pagamento === "paid");
       const usado = pedidos.filter(p => p.usado_em);
+      const totalPago = pago.reduce((total, pedido) => total + Number(pedido.valor_centavos || 0), 0) / 100;
       document.getElementById("metricas").innerHTML = [
-        ["Pedidos", pedidos.length], ["Pagos", pago.length], ["Entradas", usado.length], ["Pendentes", pedidos.filter(p => p.status_pagamento === "pending").length]
+        ["Pedidos", pedidos.length], ["Pagos", pago.length], ["Entradas", usado.length], ["Recebido", totalPago.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })], ["Pendentes", pedidos.filter(p => p.status_pagamento === "pending").length]
       ].map(([nome,valor]) => `<div><b>${nome}</b><span>${valor}</span></div>`).join("");
+    }
+    function formatarData(valor) { return valor ? new Date(valor).toLocaleString("pt-BR") : "—"; }
+    function abrirDetalhe(id) {
+      const pedido = pedidos.find(item => item.id === id);
+      if (!pedido) return;
+      const tipo = pedido.tipo_ingresso === "crianca" ? "Criança" : "Adulto";
+      detalhe.classList.remove("hidden");
+      detalhe.innerHTML = `<div class="detail-header"><div><h2>Bilhete de ${texto(pedido.nome)}</h2><p class="small">Detalhes do pedido e QR Code para a entrada.</p></div><button id="fechar-detalhe" class="table-button" type="button">Fechar</button></div><div class="detail-grid"><div><b>CT</b><span>${texto(pedido.ct)}</span></div><div><b>WhatsApp</b><span>${texto(WhatsApp.formatarWhatsApp(pedido.whatsapp))}</span></div><div><b>Ingresso</b><span>${tipo}</span></div><div><b>Valor</b><span>${(Number(pedido.valor_centavos || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div><div><b>Status</b><span>${texto(pedido.status_pagamento)}</span></div><div><b>Pagamento</b><span>${formatarData(pedido.pago_em)}</span></div><div><b>Entrada</b><span>${formatarData(pedido.usado_em)}</span></div><div><b>Código</b><span>${texto(pedido.codigo_ingresso || "Ainda não gerado")}</span></div></div><div id="qr-admin" class="qr hidden"></div>`;
+      document.getElementById("fechar-detalhe").addEventListener("click", () => detalhe.classList.add("hidden"));
+      if (pedido.codigo_ingresso) {
+        const qr = document.getElementById("qr-admin");
+        qr.classList.remove("hidden");
+        new QRCode(qr, { text: `FESTA80CT|${pedido.codigo_ingresso}`, width: 200, height: 200 });
+      }
+      detalhe.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     async function carregar() {
       try {
@@ -60,7 +99,7 @@
       const linhas = pedidos.map(p => ({
         Nome: p.nome,
         CT: p.ct,
-        WhatsApp: p.whatsapp,
+        WhatsApp: WhatsApp.formatarWhatsApp(p.whatsapp),
         Tipo: p.tipo_ingresso === "crianca" ? "Criança" : "Adulto",
         "Valor (R$)": p.valor_centavos / 100,
         Status: p.status_pagamento,
@@ -75,6 +114,17 @@
       XLSX.writeFile(arquivo, "pedidos-festa-anos-80.xlsx");
     }
     busca.addEventListener("input", renderizar);
+    filtros.addEventListener("click", (evento) => {
+      const botao = evento.target.closest("[data-status]");
+      if (!botao) return;
+      statusSelecionado = botao.dataset.status;
+      filtros.querySelectorAll(".status-filter").forEach(item => item.classList.toggle("active", item === botao));
+      renderizar();
+    });
+    document.getElementById("pedidos").addEventListener("click", (evento) => {
+      const botao = evento.target.closest("[data-order-id]");
+      if (botao) abrirDetalhe(botao.dataset.orderId);
+    });
     document.getElementById("exportar").addEventListener("click", exportarExcel);
     carregar();
   </script>

@@ -3,6 +3,8 @@ const getElement = (id) => document.getElementById(id);
 let dados = {};
 let pedidoAtual = null;
 
+WhatsApp.aplicarMascaraWhatsApp(getElement("zap"));
+
 const CFG = {
   data: "Sábado, 19/12/2026",
   hora: "19h",
@@ -41,7 +43,7 @@ function mostrarMensagemPagamento(mensagem) {
 function mostrarBilhete(bilhete) {
   getElement("t-nome").textContent = bilhete.nome;
   getElement("t-ct").textContent = bilhete.ct;
-  getElement("t-cod").textContent = bilhete.cod;
+  getElement("t-cod").textContent = `ID do bilhete: ${bilhete.cod}`;
   getElement("t-info").textContent = `${CFG.data} · ${CFG.hora}`;
   getElement("t-tipo").textContent = `Ingresso ${bilhete.tipo}`;
 
@@ -56,6 +58,51 @@ function mostrarBilhete(bilhete) {
   }
 
   mudarEtapa(3);
+}
+
+async function baixarBilhete() {
+  const botao = getElement("baixar-bilhete");
+  const status = getElement("save-status");
+  const bilhete = getElement("ticket-capture");
+  if (typeof html2canvas !== "function") {
+    status.textContent = "Não foi possível preparar a imagem. Tire um print deste bilhete.";
+    return;
+  }
+
+  botao.disabled = true;
+  botao.textContent = "Preparando imagem...";
+  try {
+    const imagem = await html2canvas(bilhete, { backgroundColor: "#13072f", scale: 2, useCORS: true });
+    const blob = await new Promise((resolve) => imagem.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("Não foi possível criar a imagem.");
+
+    const nomeArquivo = `ingresso-festa-anos-80-${getElement("t-cod").textContent.replace(/[^A-Z0-9]/gi, "-")}.png`;
+    const arquivo = new File([blob], nomeArquivo, { type: "image/png" });
+    if (navigator.canShare?.({ files: [arquivo] })) {
+      try {
+        await navigator.share({ files: [arquivo], title: "Meu ingresso — Festa Anos 80" });
+        status.textContent = "Escolha Salvar imagem ou Galeria para guardar seu ingresso.";
+        return;
+      } catch (erro) {
+        if (erro.name === "AbortError") {
+          status.textContent = "Salvamento cancelado. Você pode tentar novamente.";
+          return;
+        }
+      }
+    }
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = nomeArquivo;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    status.textContent = "Imagem baixada. Confira a pasta Downloads ou a galeria do seu celular.";
+  } catch (erro) {
+    status.textContent = "Não foi possível baixar a imagem. Tire um print deste bilhete.";
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Salvar ingresso como imagem";
+  }
 }
 
 async function consultarPedido() {
@@ -94,7 +141,7 @@ getElement("b1").addEventListener("click", async () => {
   const nome = getElement("nome").value.trim();
   const ct = getElement("ct").value.trim();
   const tipoIngresso = getElement("tipo-ingresso").value;
-  const zap = getElement("zap").value.trim();
+  const zap = WhatsApp.somenteNumeros(getElement("zap").value);
 
   if (!nome) {
     getElement("erro").textContent = "Informe o nome completo.";
@@ -104,7 +151,7 @@ getElement("b1").addEventListener("click", async () => {
     getElement("erro").textContent = "Escolha seu CT.";
     return;
   }
-  if (zap.replace(/\D/g, "").length < 10) {
+  if (!WhatsApp.isWhatsAppValido(zap)) {
     getElement("erro").textContent = "Informe um WhatsApp válido, com DDD.";
     return;
   }
@@ -135,6 +182,7 @@ getElement("b1").addEventListener("click", async () => {
 });
 
 getElement("b2").addEventListener("click", consultarPedido);
+getElement("baixar-bilhete").addEventListener("click", baixarBilhete);
 
 const pedidoDaUrl = new URLSearchParams(window.location.search).get("pedido");
 if (pedidoDaUrl) {

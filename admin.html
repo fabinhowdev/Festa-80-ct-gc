@@ -51,6 +51,7 @@
     WhatsApp.aplicarMascaraWhatsApp(busca, false);
 
     function texto(valor) { return String(valor ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    function nomeTipo(tipo) { return ({ adulto: "Adulto", juvenil: "Juvenil (14 a 17 anos)", infantil: "Infantil", crianca: "Infantil" })[tipo] || "Adulto"; }
     function renderizar() {
       const termo = busca.value.trim().toLowerCase();
       const telefone = WhatsApp.somenteNumeros(termo);
@@ -62,7 +63,7 @@
           : [p.nome, p.ct, p.codigo_ingresso].join(" ").toLowerCase().includes(termo);
         return correspondeStatus && correspondeBusca;
       });
-      document.getElementById("pedidos").innerHTML = filtrados.map(p => `<tr><td>${texto(p.nome)}</td><td>${texto(p.ct)}</td><td>${texto(WhatsApp.formatarWhatsApp(p.whatsapp))}</td><td>${p.tipo_ingresso === "crianca" ? "Criança" : "Adulto"}</td><td>${texto(p.status_pagamento)}</td><td>${texto(p.codigo_ingresso || "—")}</td><td>${p.usado_em ? "Usado" : "—"}</td><td><button class="table-button" type="button" data-order-id="${texto(p.id)}">Ver</button></td></tr>`).join("");
+      document.getElementById("pedidos").innerHTML = filtrados.map(p => `<tr><td>${texto(p.nome)}</td><td>${texto(p.ct)}</td><td>${texto(WhatsApp.formatarWhatsApp(p.whatsapp))}</td><td>${nomeTipo(p.tipo_ingresso)}</td><td>${texto(p.status_pagamento)}</td><td>${texto(p.codigo_ingresso || "—")}</td><td>${p.usado_em ? "Usado" : "—"}</td><td><button class="table-button" type="button" data-order-id="${texto(p.id)}">Ver</button></td></tr>`).join("");
     }
     function metricas() {
       const pago = pedidos.filter(p => p.status_pagamento === "paid");
@@ -76,7 +77,7 @@
     function abrirDetalhe(id) {
       const pedido = pedidos.find(item => item.id === id);
       if (!pedido) return;
-      const tipo = pedido.tipo_ingresso === "crianca" ? "Criança" : "Adulto";
+      const tipo = nomeTipo(pedido.tipo_ingresso);
       detalhe.classList.remove("hidden");
       detalhe.innerHTML = `<div class="detail-header"><div><h2>Bilhete de ${texto(pedido.nome)}</h2><p class="small">Detalhes do pedido e QR Code para a entrada.</p></div><button id="fechar-detalhe" class="table-button" type="button">Fechar</button></div><div class="detail-grid"><div><b>CT</b><span>${texto(pedido.ct)}</span></div><div><b>WhatsApp</b><span>${texto(WhatsApp.formatarWhatsApp(pedido.whatsapp))}</span></div><div><b>Ingresso</b><span>${tipo}</span></div><div><b>Valor</b><span>${(Number(pedido.valor_centavos || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div><div><b>Status</b><span>${texto(pedido.status_pagamento)}</span></div><div><b>Pagamento</b><span>${formatarData(pedido.pago_em)}</span></div><div><b>Entrada</b><span>${formatarData(pedido.usado_em)}</span></div><div><b>Código</b><span>${texto(pedido.codigo_ingresso || "Ainda não gerado")}</span></div></div><div id="qr-admin" class="qr hidden"></div>`;
       document.getElementById("fechar-detalhe").addEventListener("click", () => detalhe.classList.add("hidden"));
@@ -100,7 +101,7 @@
         Nome: p.nome,
         CT: p.ct,
         WhatsApp: WhatsApp.formatarWhatsApp(p.whatsapp),
-        Tipo: p.tipo_ingresso === "crianca" ? "Criança" : "Adulto",
+        Tipo: nomeTipo(p.tipo_ingresso),
         "Valor (R$)": p.valor_centavos / 100,
         Status: p.status_pagamento,
         "Código do ingresso": p.codigo_ingresso || "",

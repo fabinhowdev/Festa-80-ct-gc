@@ -18,13 +18,14 @@ Deno.serve(async (req) => {
 
   if (error || !data) return json({ error: "Pedido não encontrado." }, 404);
   if (data.status_pagamento !== "paid") return json({ status: data.status_pagamento });
+  const tipos = { adulto: "Adulto", juvenil: "Juvenil (14 a 17 anos)", infantil: "Infantil", crianca: "Infantil" } as const;
 
   return json({
     status: "paid",
     ticket: {
       nome: data.nome,
       ct: data.ct,
-      tipo: data.tipo_ingresso === "crianca" ? "Criança" : "Adulto",
+      tipo: tipos[data.tipo_ingresso as keyof typeof tipos] ?? "Adulto",
       cod: data.codigo_ingresso,
     },
   });

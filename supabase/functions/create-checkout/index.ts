@@ -3,8 +3,9 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 import { isWhatsAppValido, normalizarWhatsApp } from "../_shared/phone.ts";
 
 const TICKET_TYPES = {
-  adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 100 },
-  crianca: { label: "Ingresso criança — Festa Anos 80 do CT", priceCents: 100 },
+  adulto: { label: "Ingresso adulto — Festa Anos 80 do CT", priceCents: 5000 },
+  juvenil: { label: "Ingresso juvenil (14 a 17 anos) — Festa Anos 80 do CT", priceCents: 4500 },
+  infantil: { label: "Ingresso infantil — Festa Anos 80 do CT", priceCents: 3500 },
 } as const;
 
 Deno.serve(async (req) => {

@@ -10,8 +10,9 @@ const CFG = {
   hora: "19h",
   local: "CT Raiz GC",
   ingressos: {
-    adulto: { nome: "Adulto", preco: 1 },
-    crianca: { nome: "Criança", preco: 1 },
+    adulto: { nome: "Adulto", preco: 50 },
+    juvenil: { nome: "Juvenil (14 a 17 anos)", preco: 45 },
+    infantil: { nome: "Infantil", preco: 35 },
   },
 };
 

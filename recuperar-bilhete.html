@@ -32,6 +32,7 @@
     const mensagem = document.getElementById("mensagem");
     const bilhetes = document.getElementById("bilhetes");
     function escapeHtml(valor) { return String(valor).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    function nomeTipo(tipo) { return ({ adulto: "Adulto", juvenil: "Juvenil (14 a 17 anos)", infantil: "Infantil", crianca: "Infantil" })[tipo] || "Adulto"; }
     const campoWhatsApp = document.getElementById("zap");
     WhatsApp.aplicarMascaraWhatsApp(campoWhatsApp);
     document.getElementById("buscar").addEventListener("click", async () => {
@@ -47,7 +48,7 @@
         if (!dados.tickets.length) { mensagem.textContent = "Nenhum bilhete pago foi encontrado com esses dados."; return; }
         dados.tickets.forEach((ticket, indice) => {
           const card = document.createElement("div"); card.className = "ticket ticket-recovery";
-          card.innerHTML = '<div class="ticket-in"><h3>Festa Anos 80</h3><div class="small">Ingresso ' + (ticket.tipo_ingresso === "crianca" ? "Criança" : "Adulto") + '</div><div class="qr"><div id="qr-' + indice + '"></div></div><div class="who">' + escapeHtml(ticket.nome) + '</div><div>' + escapeHtml(ticket.ct) + '</div><div class="small">ID do bilhete: ' + escapeHtml(ticket.codigo_ingresso) + '</div></div>';
+          card.innerHTML = '<div class="ticket-in"><h3>Festa Anos 80</h3><div class="small">Ingresso ' + nomeTipo(ticket.tipo_ingresso) + '</div><div class="qr"><div id="qr-' + indice + '"></div></div><div class="who">' + escapeHtml(ticket.nome) + '</div><div>' + escapeHtml(ticket.ct) + '</div><div class="small">ID do bilhete: ' + escapeHtml(ticket.codigo_ingresso) + '</div></div>';
           bilhetes.appendChild(card);
           new QRCode(document.getElementById("qr-" + indice), { text:"FESTA80CT|" + ticket.codigo_ingresso, width:200, height:200 });
         });

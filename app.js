@@ -61,22 +61,75 @@ function mostrarBilhete(bilhete) {
   mudarEtapa(3);
 }
 
+function desenharTextoCentralizado(contexto, texto, y, tamanho, cor) {
+  contexto.fillStyle = cor;
+  contexto.font = `700 ${tamanho}px Arial, sans-serif`;
+  contexto.textAlign = "center";
+  contexto.fillText(texto, 540, y);
+}
+
+function arredondarRetangulo(contexto, x, y, largura, altura, raio) {
+  contexto.beginPath();
+  contexto.moveTo(x + raio, y);
+  contexto.arcTo(x + largura, y, x + largura, y + altura, raio);
+  contexto.arcTo(x + largura, y + altura, x, y + altura, raio);
+  contexto.arcTo(x, y + altura, x, y, raio);
+  contexto.arcTo(x, y, x + largura, y, raio);
+  contexto.closePath();
+}
+
+async function criarImagemBilhete() {
+  const origemQr = getElement("qrcode").querySelector("canvas, img");
+  if (!origemQr) throw new Error("QR Code não encontrado.");
+  if (origemQr.tagName === "IMG" && !origemQr.complete) {
+    await new Promise((resolve, reject) => {
+      origemQr.addEventListener("load", resolve, { once: true });
+      origemQr.addEventListener("error", reject, { once: true });
+    });
+  }
+
+  const imagem = document.createElement("canvas");
+  imagem.width = 1080;
+  imagem.height = 1520;
+  const contexto = imagem.getContext("2d");
+  const fundo = contexto.createLinearGradient(0, 0, 1080, 1520);
+  fundo.addColorStop(0, "#210b4b");
+  fundo.addColorStop(1, "#09051a");
+  contexto.fillStyle = fundo;
+  contexto.fillRect(0, 0, imagem.width, imagem.height);
+
+  contexto.strokeStyle = "#42e8ff";
+  contexto.lineWidth = 7;
+  arredondarRetangulo(contexto, 45, 45, 990, 1430, 42);
+  contexto.stroke();
+
+  desenharTextoCentralizado(contexto, "CT RAIZ GC APRESENTA", 155, 34, "#42e8ff");
+  desenharTextoCentralizado(contexto, "FESTA ANOS 80", 255, 76, "#ffe56b");
+  desenharTextoCentralizado(contexto, getElement("t-info").textContent, 325, 33, "#ffffff");
+  desenharTextoCentralizado(contexto, getElement("t-tipo").textContent, 380, 34, "#ff9be9");
+
+  contexto.fillStyle = "#ffffff";
+  arredondarRetangulo(contexto, 240, 440, 600, 600, 24);
+  contexto.fill();
+  contexto.drawImage(origemQr, 280, 480, 520, 520);
+
+  desenharTextoCentralizado(contexto, getElement("t-nome").textContent, 1140, 43, "#ffffff");
+  desenharTextoCentralizado(contexto, getElement("t-ct").textContent, 1202, 33, "#c7b9e9");
+  desenharTextoCentralizado(contexto, getElement("t-cod").textContent, 1270, 28, "#42e8ff");
+  desenharTextoCentralizado(contexto, "Apresente este QR Code na entrada", 1382, 29, "#ffffff");
+  desenharTextoCentralizado(contexto, "INGRESSO ÚNICO • NÃO COMPARTILHE", 1435, 25, "#ff9be9");
+
+  return new Promise((resolve) => imagem.toBlob(resolve, "image/png"));
+}
+
 async function baixarBilhete() {
   const botao = getElement("baixar-bilhete");
   const status = getElement("save-status");
-  const bilhete = getElement("ticket-capture");
-  if (typeof html2canvas !== "function") {
-    status.textContent = "Não foi possível preparar a imagem. Tire um print deste bilhete.";
-    return;
-  }
-
   botao.disabled = true;
   botao.textContent = "Preparando imagem...";
   try {
-    const imagem = await html2canvas(bilhete, { backgroundColor: "#13072f", scale: 2, useCORS: true });
-    const blob = await new Promise((resolve) => imagem.toBlob(resolve, "image/png"));
+    const blob = await criarImagemBilhete();
     if (!blob) throw new Error("Não foi possível criar a imagem.");
-
     const nomeArquivo = `ingresso-festa-anos-80-${getElement("t-cod").textContent.replace(/[^A-Z0-9]/gi, "-")}.png`;
     const arquivo = new File([blob], nomeArquivo, { type: "image/png" });
     if (navigator.canShare?.({ files: [arquivo] })) {
